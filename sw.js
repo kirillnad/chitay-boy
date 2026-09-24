@@ -1,7 +1,9 @@
 // Кэширование игры: файлы с хешами в именах — навсегда, index.html — сначала сеть.
+// ВАЖНО: sw.js никогда не кэшируем — иначе старый SW будет отдавать старый sw.js
+// и обновления никогда не доходят до устройства.
 // При новой версии имена файлов меняются, старый кэш чистится по версии.
 
-const CACHE = 'chitaiboi-v2';
+const CACHE = 'chitaiboi-v3';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -28,6 +30,12 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   // Чужие origin (модель распознавания и т.п.) — приложение кэширует само
   if (url.origin !== self.location.origin) return;
+
+  // Сам service worker — ТОЛЬКО сеть, без кэша: иначе обновления мёртвы
+  if (url.pathname.endsWith('sw.js')) {
+    e.respondWith(fetch(req));
+    return;
+  }
 
   // HTML: сначала сеть, при провале — кэш (чтобы подхватить новую версию)
   if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {
