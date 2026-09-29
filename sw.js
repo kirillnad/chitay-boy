@@ -2,8 +2,11 @@
 // ВАЖНО: sw.js никогда не кэшируем — иначе старый SW будет отдавать старый sw.js
 // и обновления никогда не доходят до устройства.
 // При новой версии имена файлов меняются, старый кэш чистится по версии.
+// Кэш модели распознавания (chitaiboi-vosk-*) НЕ трогаем: это 41 МБ,
+// которые скачиваются один раз — иначе каждый деплой заставляет качать заново.
 
 const CACHE = 'chitaiboi-v3';
+const KEEP_PREFIXES = ['chitaiboi-vosk-'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -19,7 +22,13 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k !== CACHE && !KEEP_PREFIXES.some((p) => k.startsWith(p)))
+            .map((k) => caches.delete(k))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
